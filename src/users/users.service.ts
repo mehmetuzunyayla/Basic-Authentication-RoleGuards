@@ -1,7 +1,6 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import { ConflictException, HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { Users } from "@prisma/client";
 import { PrismaService } from "src/prisma.service";
-
 
 @Injectable()
 export class UsersService{
@@ -25,18 +24,26 @@ export class UsersService{
         })
     }
     
-    async getAllUser(minAge?: number, maxAge?: number):Promise<{ name: string; email: string; age: string }[]>{
+    async getAllUser(minAge?: number, maxAge?: number, name?: string):Promise<{ name: string; email: string; age: number }[]>{
         const where: any = {};
 
-        if (minAge !== undefined) {
-            where.age = { gte: minAge };
+        if (name !== undefined) {
+            where.name = { contains: name };
+        } 
+    
+        if (minAge !== undefined || maxAge !== undefined) {
+            where.age = {};
+    
+            if (minAge !== undefined) {
+                where.age.gte = parseInt(minAge as any, 10);
+            }
+    
+            if (maxAge !== undefined) {
+                where.age.lte = parseInt(maxAge as any, 10);
+            }
         }
-
-        if (maxAge !== undefined) {
-            where.age = { ...where.age, lte: maxAge };
-        }
-
-        return this.prisma.users.findMany({
+    
+        const users = await this.prisma.users.findMany({
             where,
             select: {
                 name: true,
@@ -44,6 +51,12 @@ export class UsersService{
                 age: true
             }
         });
+    
+        if (users.length === 0) {
+            throw new HttpException('No users found', HttpStatus.NOT_FOUND);
+        }
+    
+        return users;
     }
 
     async getProfileInfo(username: string):Promise<Users | null>{
@@ -64,7 +77,7 @@ export class UsersService{
     
         // If the user does not exist, you might want to handle this case accordingly.
         if (!existingUser) {
-            throw new Error(`User with username ${username} not found.`);
+            throw new HttpException(`User with username ${username} not found.`, HttpStatus.NOT_FOUND);
         }
     
         // Update the user's name
@@ -80,7 +93,7 @@ export class UsersService{
         return updatedUser;
     }
    
-    async updateAge(username: string, newAge: string): Promise<Users>{
+    async updateAge(username: string, newAge: number): Promise<Users>{
         const existingUser = await this.prisma.users.findUnique({
             where: {
                 username: username
@@ -89,7 +102,7 @@ export class UsersService{
         
         // If the user does not exist, you might want to handle this case accordingly.
         if (!existingUser) {
-            throw new Error(`User with username ${username} not found.`);
+            throw new HttpException(`User with username ${username} not found.`, HttpStatus.NOT_FOUND);
         }
 
         //Update the user's age

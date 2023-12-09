@@ -1,8 +1,8 @@
-import { IsOptional, IsString, Length } from "class-validator";
+import { IsEmail, IsOptional, IsString, Length } from "class-validator";
 
 export class LoginDto{
     
-    @IsString()
+    @IsEmail()
     @Length(5,20)
     @IsOptional()
     email: string;

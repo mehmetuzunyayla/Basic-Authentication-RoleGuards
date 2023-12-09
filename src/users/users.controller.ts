@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpException, HttpStatus, Param, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { Request, Response } from "express";
 import { UsersService } from "./users.service";
 import { JwtAuthGuard } from "src/authentication/auth.guard";
@@ -12,37 +12,48 @@ export class UsersController {
     @Get()
     @UseGuards(JwtAuthGuard)
     async getAllUsers(
-                    @Query('minAge') minAge: number,
-                    @Query('maxAge') maxAge: number,
-                    @Req() request: Request, 
-                    @Res() response: Response
-                ):Promise<any>{
-        try{
-            const result = await this.userService.getAllUser(minAge, maxAge);
+        @Query('minAge') minAge: number,
+        @Query('maxAge') maxAge: number,
+        @Query('cname') cname: string,
+        @Req() request: Request, 
+        @Res() response: Response
+    ):Promise<any>{
+        try {
+            const result = await this.userService.getAllUser(minAge, maxAge, cname);
             return response.status(200).json({
                 status: 'Ok!',
-                message: 'Succesfully fetch data!',
+                message: 'Successfully fetch data!',
                 result: result
-            })
-        }catch(err){
-            return response.status(500).json({
-                status: 'Unauthorized access',
-                message: 'Internal Server Error!'
-            })
+            });
+        } catch (err) {
+            if (err instanceof HttpException) {
+                return response.status(err.getStatus()).json({
+                    status: 'Error',
+                    message: err.message
+                });
+            } else {
+                return response.status(500).json({
+                    status: 'Internal Server Error',
+                    message: 'Something went wrong!'
+                });
+            }
         }
     }
-
 
     @Get("/info")
     @UseGuards(JwtAuthGuard)
     async getProfileInfos(
-        @Query('username') username: string,
+        @Query('username') requestedUsername: string,
         @Req() request: Request, 
         @Res() response: Response
     ): Promise<any> {
         try{
-            
-            const profile = await this.userService.getProfileInfo(username);
+            const currentUser = (request.user as Users).username;
+            if (currentUser !== requestedUsername) {
+                throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+              }
+
+            const profile = await this.userService.getProfileInfo(requestedUsername);
 
             if (profile !== null) {
                 return response.status(200).json({
@@ -67,27 +78,51 @@ export class UsersController {
     }
 
 
-
     @Post("/updateNames")
-    async updateNames(@Body() { username, newName }: { username: string, newName: string }): Promise<Users> {        
+    @UseGuards(JwtAuthGuard)
+    async updateNames(@Body() { username, newName }: { username: string, newName: string }, @Req() request: any,): Promise<Users> {        
         try {
+            
+            const currentUser = request.user.username;
+            if (currentUser !== username) {
+                throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+              }
+
             // Call the service method to update the user's name
             const updatedUser = await this.userService.updateName(username, newName);
             return updatedUser;
         } catch (error) {
-            // Handle errors and return an appropriate response
-            throw new Error(`Error updating user name: ${error.message}`);
-        }
+            if (error instanceof HttpException) {
+                throw error; // Re-throw the HttpException to ensure proper error propagation
+            } else {
+                // Log the error or handle it appropriately
+                console.error(`Error updating user name: ${error.message}`);
+                throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+                }    
+            
+            }
     }
 
     @Post("/updateAges")
-    async updateAges(@Body() {username, newAge}: {username: string, newAge: string}):Promise<Users>{
+    @UseGuards(JwtAuthGuard)
+    async updateAges(@Body() {username, newAge}: {username: string, newAge: number}, @Req() request: any,):Promise<Users>{
         try{
+            const currentUser = request.user.username;
+            if (currentUser !== username) {
+                throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+              }
             const updatedUser = await this.userService.updateAge(username, newAge);
             return updatedUser;
-        }catch(error){
-            throw new Error(`Error updating user name: ${error.message}`);
-        }
+        }catch (error) {
+            if (error instanceof HttpException) {
+                throw error; // Re-throw the HttpException to ensure proper error propagation
+            } else {
+                // Log the error or handle it appropriately
+                console.error(`Error updating age: ${error.message}`);
+                throw new HttpException('Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+                }    
+            
+            }
     }
 
 

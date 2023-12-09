@@ -6,6 +6,6 @@ export class Users implements Prisma.UsersCreateInput{
     password: string;
     username: string;
     email: string;
-    age: string;
+    age: number;
 
 }

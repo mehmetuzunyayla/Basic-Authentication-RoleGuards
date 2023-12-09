@@ -17,7 +17,7 @@ export class AuthService{
 
     
     async login(loginDto: LoginDto):Promise<any>{
-        const {email,username, password} = loginDto;
+        const {email, username, password} = loginDto;
 
         let user;
         if (email) {
