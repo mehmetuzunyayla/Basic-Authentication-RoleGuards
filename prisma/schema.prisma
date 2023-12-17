@@ -17,4 +17,5 @@ model Users {
   username String @unique @db.VarChar(45)
   email String @unique @db.VarChar(45)
   age Int
+  role String @default("user") @db.VarChar(20)
 }

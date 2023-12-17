@@ -16,7 +16,7 @@ export class JwtStrategy extends PassportStrategy(Strategy){
     }
 
     
-    async validate(payload: { email?: string; username?: string }): Promise<any> {
+    async validate(payload: { email?: string; username?: string; role: string }): Promise<any> {
         if (!payload.email && !payload.username) {
             throw new UnauthorizedException('Invalid payload');
         }
@@ -25,6 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy){
             where: {
                 email: payload.email,
                 username: payload.username,
+                role: payload.role,
             },
         });
     
@@ -32,8 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy){
             throw new UnauthorizedException('User not found');
         }
     
-        // Rest of your validation logic...
     
-        return users; // Or whatever you want to return from this method
+        return users; 
     }
 }

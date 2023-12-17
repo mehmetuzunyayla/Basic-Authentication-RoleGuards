@@ -23,7 +23,29 @@ export class UsersService{
             data:user
         })
     }
+    async checkAdminExists(): Promise<boolean> {
+        const adminUser = await this.prisma.users.findFirst({
+          where: {
+            role: 'admin',
+          },
+        });
+      
+        return !!adminUser;
+      }
     
+    async setRole(username: string, role: string): Promise<Users> {
+        const updatedUser = await this.prisma.users.update({
+            where: {
+                username: username
+            },
+            data: {
+                role: role
+            }
+    });
+
+    return updatedUser;
+    }
+
     async getAllUser(minAge?: number, maxAge?: number, name?: string):Promise<{ name: string; email: string; age: number }[]>{
         const where: any = {};
 
@@ -46,9 +68,11 @@ export class UsersService{
         const users = await this.prisma.users.findMany({
             where,
             select: {
+                id: true,
                 name: true,
                 email: true,
-                age: true
+                age: true,
+                role: true
             }
         });
     

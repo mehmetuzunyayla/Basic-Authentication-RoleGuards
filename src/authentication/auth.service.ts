@@ -37,6 +37,7 @@ export class AuthService{
         const validatePassword = await bcrypt.compare(password, user.password);
 
         if (!validatePassword) {
+
             throw new NotFoundException('Invalid password');
         }
 
@@ -47,18 +48,22 @@ export class AuthService{
     
 
     async register (createDto: RegisterUsersDto): Promise<any>{
-        const createUsers = new Users()
-        createUsers.name = createDto.name
-        createUsers.email = createDto.email
-        createUsers.username = createDto.username
-        createUsers.age = createDto.age
-        createUsers.password = await bcrypt.hash(createDto.password,10)
-
-        const user = await this.usersService.createUser(createUsers)
-        
-        
-        return {
-            token: this.jwtService.sign({username: user.username})
+        const { role, ...userDto } = createDto; // Extract role from DTO
+        const createUsers = new Users();
+        Object.assign(createUsers, userDto); // Assign other properties
+        createUsers.password = await bcrypt.hash(createDto.password, 10);
+        if (role) {
+            // If a role is provided in the DTO, use it
+            createUsers.role = role;
+        } else {
+            // If no role is provided, set a default role (e.g., "user")
+            createUsers.role = "user";
         }
+
+        const user = await this.usersService.createUser(createUsers);
+
+        return {
+            token: this.jwtService.sign({ username: user.username, role: user.role })
+        };
     }
 }

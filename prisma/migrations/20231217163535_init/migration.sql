@@ -6,6 +6,7 @@ CREATE TABLE "Users" (
     "username" VARCHAR(45) NOT NULL,
     "email" VARCHAR(45) NOT NULL,
     "age" INTEGER NOT NULL,
+    "role" VARCHAR(20) NOT NULL DEFAULT 'user',
 
     CONSTRAINT "Users_pkey" PRIMARY KEY ("id")
 );

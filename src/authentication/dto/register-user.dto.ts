@@ -22,4 +22,7 @@ export class RegisterUsersDto {
     @Min(1)
     @Max(105)
     age: number;
+    
+   
+    role: string = "user"; 
 }
